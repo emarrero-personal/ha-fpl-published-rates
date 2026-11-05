@@ -1,0 +1,14 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+addopts = "--cov=custom_components.fpl_rates --cov-branch --cov-report=term-missing --cov-report=xml"
+
+[tool.coverage.run]
+source = ["custom_components.fpl_rates"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 85.01
+precision = 2
+show_missing = true

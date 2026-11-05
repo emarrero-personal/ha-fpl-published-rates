@@ -1,0 +1,16 @@
+{
+  "domain": "fpl_rates",
+  "name": "FPL Published Rates",
+  "codeowners": [
+    "@emarrero-personal"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/emarrero-personal/ha-fpl-published-rates",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/emarrero-personal/ha-fpl-published-rates/issues",
+  "requirements": [
+    "pypdf==6.21.4"
+  ],
+  "version": "1.0.0"
+}

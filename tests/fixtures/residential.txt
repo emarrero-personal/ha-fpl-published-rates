@@ -1,0 +1,5 @@
+Synthetic residential publication for deterministic tests (not official rates).
+Effective January 2026
+Residential Service (RS-1) $10.00 6.00 7.00 0.10 0.20 0.30 0.40 2.00 3.00 -0.50
+Residential TOU Rider (RTR-1) $10.00 +4.00 -2.00 0 0 0 0 +1.00 -0.50 0
+minimum $25.00 base bill

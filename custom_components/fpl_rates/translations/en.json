@@ -1,0 +1,36 @@
+{
+  "title": "FPL Published Rates",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up FPL Published Rates",
+        "description": "Downloads and validates FPL's published residential rates. Automatic discovery falls back to the configured PDF URL.",
+        "data": {
+          "name": "Name",
+          "auto_discover": "Automatically discover the current PDF",
+          "rates_page": "FPL rates page URL",
+          "pdf_url": "Fallback residential-rate PDF URL",
+          "update_hours": "Update interval in hours",
+          "monthly_energy_entity": "Optional monthly energy sensor"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "FPL Published Rates is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "FPL Published Rates options",
+        "data": {
+          "auto_discover": "Automatically discover the current PDF",
+          "rates_page": "FPL rates page URL",
+          "pdf_url": "Fallback residential-rate PDF URL",
+          "update_hours": "Update interval in hours",
+          "monthly_energy_entity": "Optional monthly energy sensor"
+        }
+      }
+    }
+  }
+}
