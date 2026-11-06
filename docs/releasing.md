@@ -35,17 +35,56 @@ submission is therefore unnecessary for this layout.
 
 ## Publish a release
 
-1. Push the reviewed changes to the public GitHub repository and confirm CI.
-2. Create a GitHub release targeting that commit with a tag matching the
-   manifest version, for example `v1.0.0` for `1.0.0`.
-3. Include user-visible changes, compatibility requirements, and any migration
-   instructions in the release notes. Publish the release; a tag alone does
-   not create a GitHub release.
-4. Install the release through HACS as a custom repository and check that the
-   integration version and entities are correct after restarting.
+### One-time automation setup
 
-No GitHub release or remote repository change is performed by these local
-preparation steps. Until a release exists, HACS can install the default branch.
+Enable **Allow auto-merge** in the repository's general settings. Keep the
+existing branch protections and required checks enabled.
+
+Create a fine-grained personal access token restricted to this repository with
+**Contents: read and write** and **Pull requests: read and write** permissions.
+Store it as the repository Actions secret `RELEASE_TOKEN`, and renew it before
+it expires. Never commit or paste the token into an issue, PR, or workflow input.
+This token creates the version branch and PR and enables auto-merge; GitHub's
+built-in token publishes the release.
+
+The separate token lets the version PR trigger CI automatically. PRs created
+with `GITHUB_TOKEN` require approval before their workflows can run. The global
+Actions setting allowing workflows to create or approve PRs can stay disabled;
+the release workflow does not use `GITHUB_TOKEN` to create PRs or approve reviews.
+
+### Run the release workflow
+
+1. Merge the changes you want to release and complete the runtime checks above.
+2. Open **Actions → Release → Run workflow**, select **main**, and enter a new
+   stable version such as `1.0.1` (without `v`). It must be greater than the
+   version currently in the integration manifest. Prereleases are not supported.
+3. The workflow creates `release/v1.0.1`, changes only the manifest version,
+   opens a PR, and enables squash auto-merge. Required branch checks must pass
+   before merging. If main advances, update the release branch and let CI rerun.
+4. After the PR merges, the workflow creates `v1.0.1` at that PR's exact squash
+   merge commit and publishes a GitHub release with generated release notes.
+   It does not tag the current branch tip or overwrite existing tags.
+5. Review the generated notes and add any compatibility or migration guidance.
+   Install the release through HACS and confirm the version and entities after
+   restarting Home Assistant.
+
+The workflow serializes release runs and waits up to 45 minutes for merging.
+Close the version PR to cancel before merging, or cancel the workflow to stop
+publication. If checks fail or the PR has not merged in time, fix the problem
+and use **Re-run failed jobs** after it merges. A retry accepts an existing tag
+only if it targets the same commit and leaves an existing published release
+untouched. If preparation fails after creating a branch but before opening its
+PR, inspect and delete that unmerged release branch before retrying.
+
+The workflow can also be dispatched from the CLI:
+
+```bash
+gh workflow run release.yml --ref main -f version=1.0.1
+```
+
+For a manual release, first merge a manifest version bump and confirm CI, then
+create and publish a GitHub release with the matching `v`-prefixed tag targeting
+that reviewed commit. A tag alone does not create a GitHub release.
 
 ## Optional default catalog submission
 
