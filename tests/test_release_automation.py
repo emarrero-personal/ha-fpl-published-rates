@@ -3,9 +3,11 @@
 import json
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+import zipfile
 
 from scripts import release
 
@@ -85,12 +87,12 @@ class ReleaseTests(unittest.TestCase):
     def test_publish_waits_and_targets_exact_merge_commit(self):
         with patch.object(release, "api", side_effect=[release_pr(), release_pr(merged=True), [], {}]) as api, \
              patch.object(release, "check_pr"), patch.object(release, "manifest", return_value=({"version": "1.0.1"}, "blob")), \
-             patch.object(release.time, "sleep") as sleep, patch.object(release, "gh", side_effect=["[[]]", "release-url"]) as cli:
+             patch.object(release.time, "sleep") as sleep, patch.object(release, "gh", return_value="[[]]"), \
+             patch.object(release, "publish_asset") as publish_asset:
             release.publish("1.0.1", 10)
             sleep.assert_called_once_with(30)
             self.assertEqual(api.call_args.args, ("git/refs", {"ref": "refs/tags/v1.0.1", "sha": "merged-commit"}))
-            self.assertIn("--generate-notes", cli.call_args.args)
-            self.assertIn("merged-commit", cli.call_args.args)
+            publish_asset.assert_called_once_with("v1.0.1", "merged-commit", None)
 
     def test_existing_tag_cannot_be_moved(self):
         with patch.object(release, "api", side_effect=[release_pr(merged=True), [{"ref": "refs/tags/v1.0.1"}], {"sha": "wrong"}]), \
@@ -101,12 +103,82 @@ class ReleaseTests(unittest.TestCase):
             cli.assert_not_called()
 
     def test_existing_matching_release_is_idempotent(self):
-        existing = {"tag_name": "v1.0.1", "draft": False, "prerelease": False, "html_url": "release-url"}
+        existing = {"tag_name": "v1.0.1", "draft": False, "prerelease": False, "html_url": "release-url",
+                    "assets": [{"name": "fpl_rates-v1.0.1.zip", "state": "uploaded", "size": 100}]}
         with patch.object(release, "api", side_effect=[release_pr(merged=True), [{"ref": "refs/tags/v1.0.1"}], {"sha": "merged-commit"}]), \
              patch.object(release, "check_pr"), patch.object(release, "manifest", return_value=({"version": "1.0.1"}, "blob")), \
              patch.object(release, "gh", return_value=json.dumps([[existing]])) as cli:
             release.publish("1.0.1", 10)
             self.assertEqual(cli.call_count, 1)
+
+    def test_zip_contains_only_integration_contents_from_release_commit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", directory, *args], text=True).strip()
+            git("init", "--quiet")
+            git("config", "user.name", "Release test")
+            git("config", "user.email", "test@example.com")
+            component = root / "custom_components/fpl_rates"
+            (component / "brand").mkdir(parents=True)
+            (component / "manifest.json").write_text('{"version": "1.0.1"}')
+            (component / "brand/icon.png").write_bytes(b"image")
+            (root / "README.md").write_text("excluded")
+            git("add", ".")
+            git("commit", "--quiet", "-m", "Release snapshot")
+            commit = git("rev-parse", "HEAD")
+            (component / "manifest.json").write_text('{"version": "9.0.0"}')
+            (component / "untracked.py").write_text("excluded")
+            git("remote", "add", "origin", directory)
+            archive = root / "integration.zip"
+            # Use a real Git archive and local fetch without changing process cwd.
+            check_call = subprocess.check_call
+            with patch.object(release.subprocess, "check_call", side_effect=lambda args: check_call(args, cwd=directory)):
+                release.build_release_zip(commit, archive)
+            with zipfile.ZipFile(archive) as result:
+                files = {name for name in result.namelist() if not name.endswith("/")}
+                self.assertEqual(files, {"manifest.json", "brand/icon.png"})
+                self.assertEqual(json.loads(result.read("manifest.json"))["version"], "1.0.1")
+                self.assertEqual(result.read("brand/icon.png"), b"image")
+
+    def test_new_release_is_published_only_after_zip_upload(self):
+        with patch.object(release, "build_release_zip") as build, patch.object(release, "gh") as cli:
+            release.publish_asset("v1.0.1", "merged-commit", None)
+            self.assertEqual(build.call_args.args[0], "merged-commit")
+            self.assertEqual(build.call_args.args[1].name, "fpl_rates-v1.0.1.zip")
+            self.assertEqual([call.args[1] for call in cli.call_args_list], ["create", "upload", "edit"])
+            self.assertIn("--draft", cli.call_args_list[0].args)
+            self.assertIn("--generate-notes", cli.call_args_list[0].args)
+            self.assertIn("--draft=false", cli.call_args_list[2].args)
+
+    def test_failed_upload_leaves_draft_for_retry(self):
+        with patch.object(release, "build_release_zip"), \
+             patch.object(release, "gh", side_effect=["", subprocess.CalledProcessError(1, "upload")]) as cli:
+            with self.assertRaises(subprocess.CalledProcessError):
+                release.publish_asset("v1.0.1", "merged-commit", None)
+            self.assertEqual([call.args[1] for call in cli.call_args_list], ["create", "upload"])
+
+    def test_retry_completes_draft_with_existing_zip_without_reupload(self):
+        existing = {"draft": True, "prerelease": False, "html_url": "release-url",
+                    "assets": [{"name": "fpl_rates-v1.0.1.zip", "state": "uploaded", "size": 100}]}
+        with patch.object(release, "build_release_zip") as build, patch.object(release, "gh") as cli:
+            release.publish_asset("v1.0.1", "merged-commit", existing)
+            build.assert_not_called()
+            self.assertEqual(cli.call_args.args, ("release", "edit", "v1.0.1", "--repo", "owner/repo", "--draft=false"))
+
+    def test_retry_adds_zip_to_existing_release_missing_asset(self):
+        existing = {"draft": False, "prerelease": False, "html_url": "release-url", "assets": []}
+        with patch.object(release, "build_release_zip"), patch.object(release, "gh") as cli:
+            release.publish_asset("v1.0.1", "merged-commit", existing)
+            self.assertEqual(cli.call_count, 1)
+            self.assertEqual(cli.call_args.args[1], "upload")
+
+    def test_incomplete_asset_is_not_published(self):
+        existing = {"draft": True, "prerelease": False, "html_url": "release-url",
+                    "assets": [{"name": "fpl_rates-v1.0.1.zip", "state": "starter", "size": 0}]}
+        with patch.object(release, "gh") as cli, self.assertRaisesRegex(ValueError, "incomplete"):
+            release.publish_asset("v1.0.1", "merged-commit", existing)
+        cli.assert_not_called()
 
     def test_timeout_does_not_publish(self):
         with patch.object(release, "api", return_value=release_pr()), patch.object(release.time, "monotonic", side_effect=[0, 3000]), \
