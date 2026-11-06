@@ -4,9 +4,10 @@
 
 Use a separate Home Assistant development or test instance for integration
 changes. The repository contains the custom component source and a GitHub Actions
-workflow for unit tests, coverage, HACS, and hassfest validation. The minimum
-declared Home Assistant version is `2026.3.0`. Tests use that baseline on
-Python 3.14 with dependencies in `requirements-test.txt`.
+workflow for unit tests, coverage, dependency vulnerability auditing, HACS, and
+hassfest validation. The minimum declared Home Assistant version is `2026.3.0`.
+Tests use Home Assistant `2026.11.0` on Python 3.14 with dependencies in
+`requirements-test.txt`.
 
 1. Clone the repository and create a branch for your change.
 2. Make the checkout's `custom_components/fpl_rates` directory available as
@@ -86,6 +87,24 @@ rate-change notifications, config and options flows, entry lifecycle, entities,
 energy unit conversion, bill estimation, refresh buttons, and diagnostics.
 Unit tests do not replace a complete installation test in a running Home
 Assistant instance.
+
+CI audits the full dependency chains from the integration manifest,
+`requirements-test.txt`, and `requirements-security.txt` on pushes, pull requests,
+the weekly schedule, and manual runs. Known vulnerabilities or dependency
+collection errors fail the audit job. The audit tool is pinned separately so
+Dependabot can update it without adding it to the integration's runtime.
+
+To audit the test and tooling dependencies locally with Python 3.14:
+
+```bash
+python -m pip install -r requirements-security.txt
+python -m pip_audit --strict -r requirements-test.txt -r requirements-security.txt
+```
+
+The PDF dependency in `requirements-test.txt` should match the manifest pin.
+CI also reads the manifest directly so runtime requirements remain covered when
+the manifest changes. Review advisories and upgrade the owning dependency rather
+than overriding Home Assistant's transitive dependency pins.
 
 Choose runtime checks that exercise the behavior you changed:
 
