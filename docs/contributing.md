@@ -58,6 +58,11 @@ behavior. Update these docs when user-visible behavior changes.
 
 ## Validate your contribution
 
+The **CodeQL** workflow scans Python source with the `security-extended` query
+suite on pull requests and pushes to `main`, weekly, and on manual dispatch.
+Review findings in the repository's **Security → Code scanning** tab. This
+analysis complements the dependency vulnerability audit described below.
+
 From the repository root, run these basic checks with your development Python:
 
 ```bash
