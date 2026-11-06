@@ -11,6 +11,42 @@ permissions:
   contents: read
 
 jobs:
+  dependency-audit:
+    name: Dependency vulnerability audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements-test.txt
+            requirements-security.txt
+            custom_components/fpl_rates/manifest.json
+      - name: Install audit tooling
+        run: python -m pip install -r requirements-security.txt
+      - name: Read integration runtime requirements
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(Path("custom_components/fpl_rates/manifest.json").read_text())
+          runtime_requirements = Path(os.environ["RUNNER_TEMP"]) / "fpl-runtime-requirements.txt"
+          runtime_requirements.write_text("\n".join(manifest["requirements"]) + "\n")
+          PY
+      - name: Audit runtime, test, and tooling dependency chains
+        run: >-
+          python -m pip_audit --strict
+          -r "$RUNNER_TEMP/fpl-runtime-requirements.txt"
+          -r requirements-test.txt
+          -r requirements-security.txt
+
   unit-tests:
     name: Unit tests and coverage
     runs-on: ubuntu-latest
