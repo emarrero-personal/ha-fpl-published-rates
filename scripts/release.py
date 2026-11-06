@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 MANIFEST = "custom_components/fpl_rates/manifest.json"
@@ -113,6 +114,42 @@ def prepare(version: str) -> None:
     print(pr["html_url"])
 
 
+def build_release_zip(commit: str, destination: Path) -> None:
+    """Archive only tracked integration files from the exact released commit."""
+    subprocess.check_call(["git", "fetch", "--no-tags", "--depth=1", "origin", commit])
+    subprocess.check_call([
+        "git", "archive", "--format=zip", f"--output={destination}",
+        f"{commit}:custom_components/fpl_rates",
+    ])
+
+
+def publish_asset(tag: str, commit: str, existing: dict | None) -> None:
+    """Upload the integration ZIP before publishing; recover partial attempts."""
+    repository = os.environ["GITHUB_REPOSITORY"]
+    asset_name = f"fpl_rates-{tag}.zip"
+    if existing and existing["prerelease"]:
+        raise ValueError("Existing release is a prerelease; inspect it manually")
+    asset = next((asset for asset in existing["assets"] if asset["name"] == asset_name), None) if existing else None
+    if asset:
+        if asset["state"] != "uploaded" or asset["size"] == 0:
+            raise ValueError("Existing ZIP upload is incomplete; delete the failed asset and rerun this job")
+        if existing["draft"]:
+            print(gh("release", "edit", tag, "--repo", repository, "--draft=false"))
+        print(existing["html_url"])
+        return
+    with tempfile.TemporaryDirectory() as directory:
+        archive = Path(directory) / asset_name
+        build_release_zip(commit, archive)
+        if not existing:
+            gh("release", "create", tag, "--repo", repository, "--draft",
+               "--verify-tag", "--target", commit, "--title", tag, "--generate-notes")
+        gh("release", "upload", tag, str(archive), "--repo", repository)
+        if not existing or existing["draft"]:
+            print(gh("release", "edit", tag, "--repo", repository, "--draft=false"))
+        else:
+            print(existing["html_url"])
+
+
 def publish(version: str, number: int) -> None:
     deadline = time.monotonic() + 45 * 60
     while True:
@@ -142,13 +179,7 @@ def publish(version: str, number: int) -> None:
     releases = json.loads(gh("api", "--paginate", "--slurp",
         f"repos/{os.environ['GITHUB_REPOSITORY']}/releases?per_page=100"))
     existing = next((r for page in releases for r in page if r["tag_name"] == tag), None)
-    if existing:
-        if existing["draft"] or existing["prerelease"]:
-            raise ValueError("Existing release is a draft or prerelease; inspect it manually")
-        print(existing["html_url"])
-        return
-    print(gh("release", "create", tag, "--repo", os.environ["GITHUB_REPOSITORY"],
-        "--verify-tag", "--target", commit, "--title", tag, "--generate-notes"))
+    publish_asset(tag, commit, existing)
 
 
 if __name__ == "__main__":

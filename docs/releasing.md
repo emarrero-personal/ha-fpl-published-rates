@@ -1,8 +1,13 @@
 # Releases and HACS publishing
 
 The repository uses HACS's standard `custom_components/fpl_rates` layout. HACS
-downloads the integration directly from the selected branch or release tag;
-there is no release ZIP to build or upload.
+downloads the integration directly from the selected branch or release tag.
+The release workflow also attaches `fpl_rates-v<VERSION>.zip` for manual
+downloads. The ZIP contains the contents of `custom_components/fpl_rates` at
+its root (`manifest.json`, Python modules, `brand/`, and `translations/`), taken
+from the exact release commit. Extract it into your Home Assistant configuration's
+`custom_components/fpl_rates/` directory. The repository's HACS configuration
+continues to install from the tagged source.
 
 ## Validate before publishing
 
@@ -62,8 +67,10 @@ the release workflow does not use `GITHUB_TOKEN` to create PRs or approve review
    opens a PR, and enables squash auto-merge. Required branch checks must pass
    before merging. If main advances, update the release branch and let CI rerun.
 4. After the PR merges, the workflow creates `v1.0.1` at that PR's exact squash
-   merge commit and publishes a GitHub release with generated release notes.
-   It does not tag the current branch tip or overwrite existing tags.
+   merge commit, builds the integration ZIP from that commit, and creates a
+   draft GitHub release with generated notes. It uploads the ZIP before
+   publishing the release. It does not tag the current branch tip or overwrite
+   existing tags or assets.
 5. Review the generated notes and add any compatibility or migration guidance.
    Install the release through HACS and confirm the version and entities after
    restarting Home Assistant.
@@ -72,8 +79,11 @@ The workflow serializes release runs and waits up to 45 minutes for merging.
 Close the version PR to cancel before merging, or cancel the workflow to stop
 publication. If checks fail or the PR has not merged in time, fix the problem
 and use **Re-run failed jobs** after it merges. A retry accepts an existing tag
-only if it targets the same commit and leaves an existing published release
-untouched. If preparation fails after creating a branch but before opening its
+only if it targets the same commit. It resumes a draft left by a failed upload,
+adds the ZIP if missing, and leaves an existing ZIP and release notes untouched.
+If GitHub retains an incomplete upload, delete that failed asset and rerun the
+publish job; the workflow refuses to publish a draft with an incomplete ZIP.
+If preparation fails after creating a branch but before opening its
 PR, inspect and delete that unmerged release branch before retrying.
 
 The workflow can also be dispatched from the CLI:
