@@ -1,17 +1,26 @@
 # Installation and configuration
 
-## Install with HACS
+## Install with Marketplace or HACS
 
 Requires Home Assistant **2026.3.0 or newer**.
 
-1. Open HACS and select **Custom repositories** from the menu.
-2. Add `https://github.com/emarrero-personal/ha-fpl-published-rates` with type
-   **Integration**.
-3. Download **FPL Published Rates**, then restart Home Assistant.
-4. Open **Settings → Devices & services → Add integration** and select
-   **FPL Published Rates** to complete setup.
+[Open FPL Published Rates in your Home Assistant](https://my.home-assistant.io/redirect/hacs_repository/?owner=emarrero-personal&repository=ha-fpl-published-rates&category=integration)
+and confirm adding the custom repository if prompted.
 
-For updates, download the new version in HACS and restart Home Assistant.
+To add it from the menu, use the repository URL
+`https://github.com/emarrero-personal/ha-fpl-published-rates`:
+
+- **Marketplace (Home Assistant 2026.11 and newer)**. Open
+  **Settings → Marketplace → Add from link**, enter the repository URL, and
+  choose **Integration** if asked for the type. Connect GitHub if prompted.
+- **HACS (earlier Home Assistant versions)**. In HACS, open **Custom repositories**
+  from the menu and add the URL as an **Integration**.
+
+Install **FPL Published Rates**, restart Home Assistant, then open
+**Settings → Devices & services → Add integration** and select
+**FPL Published Rates** to finish setup.
+
+For updates, use the same store and restart Home Assistant after installation.
 
 ## Manual installation
 

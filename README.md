@@ -1,34 +1,46 @@
-![FPL Published Rates icon](./custom_components/fpl_rates/brand/icon.png)
-
 # FPL Published Rates
 
-Bring Florida Power & Light’s published residential electricity rates into Home
-Assistant. See what FPL charges per kWh, track when the time-of-use schedule
-switches between peak and off-peak, and use those signals in dashboards and
-automations. The integration reads public FPL rate publications and requires no
-FPL account.
+<img src="custom_components/fpl_rates/brand/icon.png" alt="FPL Published Rates icon" width="96">
 
-## What you get in Home Assistant
+**Florida Power & Light electricity rates in Home Assistant.** See your
+residential rate per kWh, know when the next off-peak window starts, and use
+those signals in dashboards and automations. The integration reads FPL’s
+public rate publications and requires no FPL account.
 
-The integration groups its entities on one device page.
+[![Open FPL Published Rates in Home Assistant Marketplace or HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=emarrero-personal&repository=ha-fpl-published-rates&category=integration)
 
-| What you want to see | Entities to use |
+[Installation guide](docs/installation.md) · [Releases](https://github.com/emarrero-personal/ha-fpl-published-rates/releases) · [Report an issue](https://github.com/emarrero-personal/ha-fpl-published-rates/issues)
+
+## Install
+
+Requires Home Assistant **2026.3.0 or newer**. The button above opens
+**Marketplace** on Home Assistant 2026.11 and newer, or **HACS** on earlier
+versions with HACS installed. You can add the integration as a custom
+repository today while its [catalog submission](https://github.com/hacs/default/pull/13540)
+is in review.
+
+1. Open the repository using the button above and confirm adding it if prompted.
+2. Install **FPL Published Rates** and restart Home Assistant.
+3. Go to **Settings → Devices & services → Add integration** and select
+   **FPL Published Rates**.
+
+If the button doesn’t open your instance, use the [Marketplace or HACS menu
+instructions](docs/installation.md). You can also
+[install manually](docs/installation.md#manual-installation).
+
+## What you can do with it
+
+| Use case | What Home Assistant shows |
 | --- | --- |
-| Standard residential rates (RS-1) | Prices for the first 1,000 kWh and for usage above 1,000 kWh, plus the monthly base charge and minimum base bill. |
-| Time-of-use rates (RTR-1) | Peak and off-peak prices for both usage tiers, plus the current first-tier price in ¢/kWh and $/kWh. |
-| Peak or off-peak now | The **RTR-1 current period** sensor shows the active period and its next scheduled change. The **RTR-1 peak** binary sensor can trigger automations, such as deferring EV charging until off-peak. |
-| Estimated monthly bill | Optionally connect a monthly energy sensor to estimate your RS-1 bill. |
-| Source and refresh | **Publication effective** shows the effective month and year. **Refresh rates** checks the publication on demand. |
+| **See your standard residential rates (RS-1)** | Prices for the first 1,000 kWh and for usage above 1,000 kWh, plus the monthly base charge and minimum base bill. |
+| **Schedule EV charging or other loads on the time-of-use plan (RTR-1)** | The current peak or off-peak period, the next scheduled change, and an **RTR-1 peak** binary sensor for automations. |
+| **Put the time-of-use price on a dashboard** | Peak and off-peak rates for both usage tiers, plus the current first-tier rate in ¢/kWh and $/kWh. |
+| **Estimate your RS-1 bill** | An optional bill estimate based on a monthly or billing-cycle energy sensor. |
+| **Check the rate source** | The publication’s effective month and year, with a **Refresh rates** button. |
 
-## Install with HACS
+![Home Assistant device page showing sample RS-1 and RTR-1 electricity rate sensors, the off-peak state, and the publication effective date](docs/images/fpl-published-rates-device.png)
 
-Requires Home Assistant **2026.3.0 or newer**.
-
-1. Open [FPL Published Rates in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=emarrero-personal&repository=ha-fpl-published-rates&category=integration). You can also open **HACS → Custom repositories** and add `https://github.com/emarrero-personal/ha-fpl-published-rates` as an **Integration**.
-2. Download **FPL Published Rates** and restart Home Assistant.
-3. Go to **Settings → Devices & services → Add integration** and select **FPL Published Rates**.
-
-For manual setup, follow the [manual installation instructions](docs/installation.md#manual-installation).
+*Example device page. Rates shown are from the publication displayed in the screenshot.*
 
 ## Configure
 
@@ -36,13 +48,12 @@ For manual setup, follow the [manual installation instructions](docs/installatio
 - **Peak schedule.** RTR-1 uses Eastern Time (`America/New_York`), including daylight saving time.
 - **Bill estimate.** Select an energy sensor that tracks usage for your current month or billing cycle. The estimate covers RS-1 and excludes taxes, franchise fees, and account-specific charges.
 
-## Documentation and support
+## Documentation
 
 - [Installation, configuration, and full entity list](docs/installation.md)
 - [Rate calculations and peak schedule](docs/architecture.md)
 - [Contributing and tests](docs/contributing.md)
 - [Release guide](docs/releasing.md)
-- [Report an issue](https://github.com/emarrero-personal/ha-fpl-published-rates/issues)
 
 ## Sources and credits
 
