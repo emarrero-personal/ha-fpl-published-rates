@@ -6,6 +6,7 @@ from datetime import timedelta
 import logging
 from typing import Any
 
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -98,7 +99,10 @@ class FPLRatesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     discovered = source_url != configured_url
 
             pdf = await self._get_bytes(source_url)
-            parsed = parse_tariff_pdf(pdf, source_url, discovered).to_dict()
+            tariff = await self.hass.async_add_executor_job(
+                parse_tariff_pdf, pdf, source_url, discovered
+            )
+            parsed = tariff.to_dict()
         except Exception as err:
             raise UpdateFailed(
                 f"Unable to retrieve or parse FPL rates: {err}"
@@ -116,7 +120,8 @@ class FPLRatesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if previous and any(
             previous.get(key) != parsed.get(key) for key in important
         ):
-            self.hass.components.persistent_notification.async_create(
+            persistent_notification.async_create(
+                self.hass,
                 (
                     "FPL's published residential rates changed. Review the "
                     "FPL Published Rates entities and diagnostics."
