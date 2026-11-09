@@ -1,6 +1,7 @@
 """HTTP and update behavior with deterministic I/O boundaries."""
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import timedelta
+from threading import get_ident
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -41,9 +42,15 @@ async def test_reject_non_pdf_response(coordinator):
 async def test_update_sources(coordinator, entry, tariff, discovery, html, expected, discovered):
     entry.options = {'auto_discover': discovery}
     coordinator.data = None
+    event_loop_thread = get_ident()
+
+    def parse_pdf(*_args):
+        assert get_ident() != event_loop_thread
+        return tariff
+
     with (patch.object(coordinator, '_get_text', AsyncMock(return_value=html)) as get_text,
           patch.object(coordinator, '_get_bytes', AsyncMock(return_value=b'%PDF')) as get_bytes,
-          patch.object(module, 'parse_tariff_pdf', return_value=tariff) as parse):
+          patch.object(module, 'parse_tariff_pdf', side_effect=parse_pdf) as parse):
         assert await coordinator._async_update_data() == tariff.to_dict()
     assert get_text.await_count == int(discovery)
     get_bytes.assert_awaited_once_with(expected)
@@ -74,10 +81,17 @@ async def test_refresh_errors_preserve_cause(coordinator, stage):
 async def test_notify_only_for_changed_rates(coordinator, tariff, changed):
     if changed:
         coordinator.data['base_charge'] = 99
-    notification = MagicMock()
     with (patch.object(coordinator, '_get_text', AsyncMock(return_value='')),
           patch.object(coordinator, '_get_bytes', AsyncMock(return_value=b'%PDF')),
           patch.object(module, 'parse_tariff_pdf', return_value=tariff),
-          patch.object(type(coordinator.hass), 'components', create=True, new=MagicMock(persistent_notification=notification))):
-        await coordinator._async_update_data()
-    assert notification.async_create.call_count == int(changed)
+          patch.object(module.persistent_notification, 'async_create') as notify):
+        assert await coordinator._async_update_data() == tariff.to_dict()
+    if changed:
+        notify.assert_called_once_with(
+            coordinator.hass,
+            ANY,
+            title='FPL residential rates changed',
+            notification_id='fpl_rates_changed',
+        )
+    else:
+        notify.assert_not_called()
