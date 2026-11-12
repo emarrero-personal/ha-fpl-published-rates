@@ -10,7 +10,7 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/emarrero-personal/ha-fpl-published-rates/issues",
   "requirements": [
-    "pypdf==6.21.4"
+    "pypdf==7.0.0"
   ],
   "version": "1.0.2"
 }
