@@ -1,5 +1,5 @@
 homeassistant==2026.11.0
-pypdf==6.21.4
+pypdf==7.0.0
 pytest==9.2.0
 pytest-asyncio==1.4.1.post1
 pytest-cov==7.1.0
