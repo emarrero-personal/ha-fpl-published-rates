@@ -2,6 +2,13 @@
 
 <img src="custom_components/fpl_rates/brand/icon.png" alt="FPL Published Rates icon" width="96">
 
+<p align="center">
+  <a href="https://github.com/emarrero-personal/ha-fpl-published-rates/stargazers"><img src="https://img.shields.io/github/stars/emarrero-personal/ha-fpl-published-rates?style=for-the-badge&amp;label=Stars&amp;color=d6a102" alt="Stars"></a>
+  <a href="https://github.com/emarrero-personal/ha-fpl-published-rates/releases"><img src="https://img.shields.io/github/downloads/emarrero-personal/ha-fpl-published-rates/total?style=for-the-badge&amp;label=Downloads&amp;color=e8604c" alt="Downloads"></a>
+  <a href="https://github.com/emarrero-personal/ha-fpl-published-rates/releases/latest"><img src="https://img.shields.io/github/v/release/emarrero-personal/ha-fpl-published-rates?style=for-the-badge&amp;label=Version&amp;color=5da3a6" alt="Version"></a>
+  <a href="https://github.com/emarrero-personal/ha-fpl-published-rates/actions/workflows/validate.yml"><img src="https://img.shields.io/github/actions/workflow/status/emarrero-personal/ha-fpl-published-rates/validate.yml?style=for-the-badge&amp;label=Build&amp;color=3fbf5f&amp;branch=main&amp;event=push" alt="Build"></a>
+</p>
+
 **Florida Power & Light electricity rates in Home Assistant.** See your
 residential rate per kWh, know when the next off-peak window starts, and use
 those signals in dashboards and automations. The integration reads FPL’s
